@@ -31,13 +31,6 @@ jobs:
           NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
         run: python monitor_hyrox.py
 
-      - name: TEMP - test email
-        env:
-          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
-        run: python -c "from monitor_hyrox import send_email; send_email('HYROX watcher test', 'This confirms the email path works.')"
-
       - name: Upload debug screenshot (only on failure)
         if: failure()
         uses: actions/upload-artifact@v4
