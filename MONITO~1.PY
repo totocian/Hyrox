@@ -4,12 +4,12 @@ HYROX Perth - Men's Doubles Open ticket watcher.
 
 Checks the non-charity "HYROX DOUBLES MEN | Friday/Saturday/Sunday" tickets
 (Doubles > Open > Men) on the AirAsia HYROX Perth vivenu ticket widget, and
-sends an email + SMS the moment any of the three dates is no longer sold out.
+sends an email the moment any of the three dates is no longer sold out.
 
-Designed to be run on a schedule (cron / systemd timer) on a small server
-(e.g. a DigitalOcean droplet) so it works with no computer or Claude open.
+Designed to be run on a schedule (e.g. a GitHub Actions workflow) so it
+works with no computer or Claude open.
 
-Requires: playwright (with chromium installed), requests, python-dotenv
+Requires: playwright (with chromium installed), python-dotenv
     pip install -r requirements.txt
     playwright install --with-deps chromium
 
@@ -27,7 +27,6 @@ from email.mime.text import MIMEText
 from pathlib import Path
 import smtplib
 
-import requests
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
@@ -200,29 +199,6 @@ def send_email(subject: str, body: str) -> None:
         log.exception("Failed to send email")
 
 
-def send_sms(body: str) -> None:
-    sid = os.environ.get("TWILIO_ACCOUNT_SID")
-    token = os.environ.get("TWILIO_AUTH_TOKEN")
-    from_number = os.environ.get("TWILIO_FROM_NUMBER")
-    to_number = os.environ.get("NOTIFY_SMS_TO")
-    if not all([sid, token, from_number, to_number]):
-        log.warning("SMS not configured (TWILIO_* / NOTIFY_SMS_TO missing) - skipping SMS.")
-        return
-    try:
-        resp = requests.post(
-            f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json",
-            auth=(sid, token),
-            data={"To": to_number, "From": from_number, "Body": body[:1500]},
-            timeout=30,
-        )
-        if resp.status_code >= 300:
-            log.error("Twilio SMS failed: %s %s", resp.status_code, resp.text)
-        else:
-            log.info("SMS sent to %s", to_number)
-    except Exception:
-        log.exception("Failed to send SMS")
-
-
 async def main():
     log.info("Checking HYROX Perth Men's Doubles Open availability...")
     try:
@@ -258,7 +234,6 @@ async def main():
             + f"\nChecked at {datetime.now(timezone.utc).isoformat()}"
         )
         send_email("HYROX Perth Doubles Men tickets AVAILABLE!", body)
-        send_sms("HYROX Perth Men's Doubles tickets available! " + ", ".join(TARGETS[t] for t in available_now) + f" - {BUY_URL}")
     else:
         log.info("Still sold out for all three dates - no notification sent.")
 
